@@ -6,6 +6,8 @@ hazlo_SOURCES = \
 	hzl-application-window.c \
 	hzl-application-window.h \
 	hzl-main.c \
+	hzl-task.c \
+	hzl-task.h \
 	$(NULL)
 
 hazlo_CPPFLAGS = \

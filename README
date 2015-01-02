@@ -1,9 +1,11 @@
 Hazlo
 =====
 
-A simple todo list manager
+A simple todo list manager.
 
 Required software
 =================
 
  * GTK 3.12
+ * GOM
+ * libuuid

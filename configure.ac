@@ -40,7 +40,7 @@ AM_GLIB_GNU_GETTEXT
 
 LT_INIT
 
-PKG_CHECK_MODULES(HZL_MODULES, [gtk+-3.0 >= $GTK_MIN_VERSION gom-1.0])
+PKG_CHECK_MODULES(HZL_MODULES, [gtk+-3.0 >= $GTK_MIN_VERSION gom-1.0 uuid])
 
 AC_ARG_VAR([DESKTOP_FILE_VALIDATE], [the desktop-file-validate program])
 AC_PATH_PROG([DESKTOP_FILE_VALIDATE], [desktop-file-validate], [])

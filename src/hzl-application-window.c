@@ -24,9 +24,7 @@
 #include <glib/gi18n.h>
 
 #include "hzl-application-window.h"
-
-#define WINDOW_MIN_WIDTH 600
-#define WINDOW_MIN_HEIGHT 400
+#include "hzl-task.h"
 
 static void hzl_application_window_class_init (HzlApplicationWindowClass *klass);
 static void hzl_application_window_init       (HzlApplicationWindow *self);
@@ -46,10 +44,24 @@ hzl_application_window_class_init (__attribute__ ((unused)) HzlApplicationWindow
 static void
 hzl_application_window_init (HzlApplicationWindow *self)
 {
+        GdkGeometry geometry = {
+                320,
+                400,
+                400,
+                600,
+                320,
+                400
+        };
+
         self->priv = hzl_application_window_get_instance_private (self);
 
+        gtk_window_set_geometry_hints (GTK_WINDOW (self),
+                                       NULL,
+                                       &geometry,
+                                       GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE | GDK_HINT_BASE_SIZE);
+
         self->priv->header_bar = gtk_header_bar_new ();
-        gtk_header_bar_set_title (GTK_HEADER_BAR (self->priv->header_bar), _("Hzl"));
+        gtk_header_bar_set_title (GTK_HEADER_BAR (self->priv->header_bar), _("Hazlo"));
         gtk_header_bar_set_show_close_button (GTK_HEADER_BAR (self->priv->header_bar), TRUE);
         gtk_window_set_titlebar (GTK_WINDOW (self), self->priv->header_bar);
         gtk_widget_show (self->priv->header_bar);
@@ -65,8 +77,6 @@ hzl_application_window_new (GtkApplication *application)
         return GTK_WIDGET (g_object_new (HZL_TYPE_APPLICATION_WINDOW,
                                          "application", application,
                                          "title", _(PACKAGE_NAME),
-                                         "width_request", WINDOW_MIN_WIDTH,
-                                         "height_request", WINDOW_MIN_HEIGHT,
                                          "window-position", GTK_WIN_POS_CENTER,
                                          NULL));
 }

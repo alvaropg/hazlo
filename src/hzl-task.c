@@ -17,6 +17,8 @@
  * along with APP. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <uuid.h>
+
 #include "hzl-task.h"
 
 struct _HzlTaskPrivate {
@@ -63,21 +65,21 @@ hzl_task_class_init (HzlTaskClass *klass)
         gobject_class->set_property = hzl_task_set_property;
         gobject_class->get_property = hzl_task_get_property;
 
-        obj_properties[HZL_TASK_PROP_TEXT] = g_param_spec_string ("uuid",
+        obj_properties[HZL_TASK_PROP_UUID] = g_param_spec_string ("uuid",
                                                                   "UUID",
                                                                   "Task Universal Unique Identifier",
-                                                                  "",
-                                                                  G_PARAM_READWRITE);
+                                                                  NULL,
+                                                                  G_PARAM_READABLE);
 
-        obj_properties[HZL_TASK_PROP_TEXT] = g_param_spec_string ("list_uuid",
-                                                                  "List UUID",
-                                                                  "List Universal Unique Identifier which the task is into",
-                                                                  "",
-                                                                  G_PARAM_READWRITE);
+        obj_properties[HZL_TASK_PROP_LIST_UUID] = g_param_spec_string ("list_uuid",
+                                                                       "List UUID",
+                                                                       "List Universal Unique Identifier which the task is into",
+                                                                       "",
+                                                                       G_PARAM_READWRITE);
 
         obj_properties[HZL_TASK_PROP_TEXT] = g_param_spec_string ("text",
                                                                   "Text",
-                                                                  "Get/Set the text property",
+                                                                  "The task text content",
                                                                   "",
                                                                   G_PARAM_READWRITE);
 
@@ -93,7 +95,13 @@ hzl_task_class_init (HzlTaskClass *klass)
 static void
 hzl_task_init (HzlTask *self)
 {
+        uuid_t uuid;
+
         self->priv = hzl_task_get_instance_private (self);
+
+        uuid_generate (uuid);
+        self->priv->uuid = g_new0(gchar, 36);
+        uuid_unparse (uuid, self->priv->uuid);
 }
 
 static void
@@ -106,7 +114,9 @@ hzl_task_set_property (GObject      *gobject,
 
         switch (property_id) {
         case HZL_TASK_PROP_UUID:
-                /* TODO: What to do? */
+                if (self->priv->uuid)
+                        g_free (self->priv->uuid);
+                self->priv->uuid = g_value_dup_string (value);
                 break;
         case HZL_TASK_PROP_LIST_UUID:
                 if (self->priv->list_uuid)
@@ -160,22 +170,27 @@ hzl_task_finalize (GObject *gobject)
 {
         HzlTask *self = HZL_TASK (gobject);
 
-        if (self->priv->text)
-                g_free (self->priv->text);
+        g_clear_pointer (&self->priv->uuid, g_free);
+        g_clear_pointer (&self->priv->list_uuid, g_free);
+        g_clear_pointer (&self->priv->text, g_free);
 
         G_OBJECT_CLASS (hzl_task_parent_class)->finalize (gobject);
 }
 
 HzlTask*
-hzl_task_new (gchar *text)
+hzl_task_new (const gchar *text)
 {
-        return HZL_TASK (g_object_new (HZL_TYPE_TASK,
+        HzlTask *task;
+
+        task = HZL_TASK (g_object_new (HZL_TYPE_TASK,
                                        "text", text,
                                        NULL));
+
+        return task;
 }
 
 void
-hzl_task_set_text (HzlTask *self, gchar *text)
+hzl_task_set_text (HzlTask *self, const gchar *text)
 {
         g_return_if_fail (HZL_IS_TASK (self));
 

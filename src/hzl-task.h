@@ -47,8 +47,8 @@ struct _HzlTaskClass {
 
 GType hzl_task_get_type (void) G_GNUC_CONST;
 
-HzlTask*     hzl_task_new (gchar *text);
-void         hzl_task_set_text (HzlTask *self, gchar *text);
+HzlTask*     hzl_task_new (const gchar *text);
+void         hzl_task_set_text (HzlTask *self, const gchar *text);
 const gchar* hzl_task_get_text (HzlTask *self);
 
 G_END_DECLS
