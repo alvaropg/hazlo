@@ -1,0 +1,10 @@
+[Desktop Entry]
+_Name=Hazlo
+_Comment=Simple task list manager
+_Keywords=task;tasks;to-do;hazlo;
+Exec=hazlo
+Icon=hazlo
+StartupNotify=true
+Terminal=false
+Type=Application
+Categories=GNOME;GTK;Utility;

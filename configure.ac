@@ -50,6 +50,8 @@ fi
 
 AC_CONFIG_FILES([
 Makefile
+data/Makefile
+data/hazlo.desktop.in
 src/Makefile
 po/Makefile.in
 ])
