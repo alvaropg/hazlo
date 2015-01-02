@@ -8,10 +8,13 @@ hazlo_SOURCES = \
 	hzl-main.c \
 	hzl-task.c \
 	hzl-task.h \
+	hzl-utils.c \
+	hzl-utils-h \
 	$(NULL)
 
 hazlo_CPPFLAGS = \
 	-DPACKAGE_LOCALE_DIR=\""${datadir}/locale"\" \
+	-DPACKAGE_DATA_DIR=\""${datadir}"\" \
 	$(AM_CPPFLAGS) \
 	$(NULL)
 
