@@ -22,6 +22,7 @@
 #include <gio/gio.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <glib/gi18n.h>
+#include <gom/gom.h>
 
 #include <config.h>
 
@@ -31,6 +32,7 @@
 
 static void hzl_application_constructed (GObject *object);
 static void hzl_application_dispose     (GObject *object);
+static void hzl_application_finalize    (GObject *object);
 static void hzl_application_activate    (GApplication *application);
 static void hzl_application_startup     (GApplication *application);
 
@@ -38,10 +40,22 @@ static void hzl_application_quit_activated (GSimpleAction *action,
                                             GVariant      *parameter,
                                             gpointer       user_data);
 
+static void hzl_application_window_destroyed_cb (GtkWidget *window,
+                                                 gpointer   user_data);
+
+static void hzl_application_adapter_async_open_cb  (GObject      *source_object,
+                                                    GAsyncResult *async_result,
+                                                    gpointer      user_data);
+static void hzl_application_adapter_async_close_cb (GObject      *source_object,
+                                                    GAsyncResult *async_result,
+                                                    gpointer      user_data);
+
 struct _HzlApplicationPrivate {
         GtkWidget *window;
         guint32 activation_timestamp;
         GResource *resource;
+        GomAdapter *adapter;
+        gchar *db_uri;
 };
 
 G_DEFINE_TYPE_WITH_CODE (HzlApplication, hzl_application, GTK_TYPE_APPLICATION, G_ADD_PRIVATE (HzlApplication));
@@ -59,6 +73,7 @@ hzl_application_class_init (HzlApplicationClass *klass)
 
         object_class->constructed = hzl_application_constructed;
         object_class->dispose = hzl_application_dispose;
+        object_class->finalize = hzl_application_finalize;
 
         application_class->activate = hzl_application_activate;
         application_class->startup = hzl_application_startup;
@@ -79,6 +94,8 @@ hzl_application_init (HzlApplication *self)
         } else {
                 g_error (_("Error loading resources file: %s"), error->message);
         }
+        self->priv->adapter = NULL;
+        self->priv->db_uri = g_build_filename (g_get_user_data_dir (), "hazlo.db", NULL);;
 }
 
 static void
@@ -106,19 +123,35 @@ hzl_application_dispose (GObject *object)
 }
 
 static void
+hzl_application_finalize (GObject *object)
+{
+        HzlApplication *self = HZL_APPLICATION (object);
+
+        if (self->priv->db_uri) {
+                g_free (self->priv->db_uri);
+                self->priv->db_uri = NULL;
+        }
+
+        G_OBJECT_CLASS (hzl_application_parent_class)->finalize (object);
+}
+
+static void
 hzl_application_activate (GApplication *application)
 {
         HzlApplication *self = HZL_APPLICATION (application);
 
+        if (self->priv->adapter == NULL) {
+                self->priv->adapter = gom_adapter_new ();
+                gom_adapter_open_async (self->priv->adapter, self->priv->db_uri, hzl_application_adapter_async_open_cb, self);
+        }
+
         if (self->priv->window == NULL) {
                 self->priv->window = hzl_application_window_new (GTK_APPLICATION (self));
+                g_signal_connect (G_OBJECT (self->priv->window), "destroy", G_CALLBACK (hzl_application_window_destroyed_cb), self);
         }
 
         gtk_window_present_with_time (GTK_WINDOW (self->priv->window), self->priv->activation_timestamp);
         self->priv->activation_timestamp = GDK_CURRENT_TIME;
-
-        /* Perhaps this would be useful */
-        /* hzl_application_populate_inbox (self); */
 }
 
 static void
@@ -143,6 +176,48 @@ hzl_application_quit_activated (__attribute__ ((unused)) GSimpleAction *action,
                                 gpointer       user_data)
 {
         gtk_widget_destroy (HZL_APPLICATION (user_data)->priv->window);
+}
+
+static void
+hzl_application_window_destroyed_cb (__attribute__ ((unused)) GtkWidget *window,
+                                     gpointer user_data)
+{
+        HzlApplication *self = HZL_APPLICATION (user_data);
+
+        g_application_hold (G_APPLICATION (self));
+        gom_adapter_close_async (self->priv->adapter, hzl_application_adapter_async_close_cb, self);
+}
+
+static void
+hzl_application_adapter_async_open_cb (__attribute__ ((unused)) GObject *source_object,
+                                       GAsyncResult *async_result,
+                                       gpointer user_data)
+{
+        gboolean finish_result;
+        HzlApplication *self = HZL_APPLICATION (user_data);
+        GError *error = NULL;
+
+        finish_result = gom_adapter_open_finish (self->priv->adapter, async_result, &error);
+        if (finish_result == FALSE) {
+                g_error ("Error opening connection with database: %s\n", error->message);
+        }
+}
+
+static void
+hzl_application_adapter_async_close_cb (__attribute__ ((unused)) GObject *source_object,
+                                        GAsyncResult *async_result,
+                                        gpointer user_data)
+{
+        HzlApplication *self = HZL_APPLICATION (user_data);
+        gboolean finish_result;
+        GError *error = NULL;
+
+        finish_result = gom_adapter_close_finish (self->priv->adapter, async_result, &error);
+        if (finish_result == FALSE) {
+                g_warning ("Error closing database: %s\n", error->message);
+        }
+
+        g_application_release (G_APPLICATION (self));
 }
 
 GtkApplication*
