@@ -34,6 +34,10 @@ static void hzl_application_dispose     (GObject *object);
 static void hzl_application_activate    (GApplication *application);
 static void hzl_application_startup     (GApplication *application);
 
+static void hzl_application_quit_activated (GSimpleAction *action,
+                                            GVariant      *parameter,
+                                            gpointer       user_data);
+
 struct _HzlApplicationPrivate {
         GtkWidget *window;
         guint32 activation_timestamp;
@@ -41,6 +45,11 @@ struct _HzlApplicationPrivate {
 };
 
 G_DEFINE_TYPE_WITH_CODE (HzlApplication, hzl_application, GTK_TYPE_APPLICATION, G_ADD_PRIVATE (HzlApplication));
+
+static GActionEntry app_entries[] =
+{
+  { "quit", hzl_application_quit_activated, NULL, NULL, NULL }
+};
 
 static void
 hzl_application_class_init (HzlApplicationClass *klass)
@@ -117,13 +126,25 @@ hzl_application_startup (GApplication *application)
 
         G_APPLICATION_CLASS (hzl_application_parent_class)->startup (application);
 
+        g_action_map_add_action_entries (G_ACTION_MAP (application),
+                                         app_entries, G_N_ELEMENTS (app_entries),
+                                         application);
+
         builder = gtk_builder_new_from_resource ("/org/gnome/hazlo/app-menu.ui");
         gtk_application_set_app_menu (GTK_APPLICATION (application), G_MENU_MODEL (gtk_builder_get_object (builder, "app-menu")));
+        g_object_unref (builder);
+}
+
+static void
+hzl_application_quit_activated (__attribute__ ((unused)) GSimpleAction *action,
+                                __attribute__ ((unused)) GVariant      *parameter,
+                                gpointer       user_data)
+{
+        gtk_widget_destroy (HZL_APPLICATION (user_data)->priv->window);
 }
 
 GtkApplication*
 hzl_application_new (void)
 {
-        return GTK_APPLICATION (g_object_new (HZL_TYPE_APPLICATION,
-                                              NULL));
+        return GTK_APPLICATION (g_object_new (HZL_TYPE_APPLICATION, NULL));
 }
