@@ -30,6 +30,10 @@
 #include "hzl-application-window.h"
 #include "hzl-utils.h"
 
+/* Hazlo resources */
+#include "hzl-tasks-list.h"
+#include "hzl-task.h"
+
 static void hzl_application_constructed (GObject *object);
 static void hzl_application_dispose     (GObject *object);
 static void hzl_application_finalize    (GObject *object);
@@ -56,6 +60,8 @@ struct _HzlApplicationPrivate {
         GResource *resource;
         GomAdapter *adapter;
         gchar *db_uri;
+        GomRepository *repository;
+        HzlTasksList *inbox_list;
 };
 
 G_DEFINE_TYPE_WITH_CODE (HzlApplication, hzl_application, GTK_TYPE_APPLICATION, G_ADD_PRIVATE (HzlApplication));
@@ -119,6 +125,9 @@ hzl_application_dispose (GObject *object)
                 self->priv->resource = NULL;
         }
 
+        g_clear_object (&self->priv->repository);
+        g_clear_object (&self->priv->adapter);
+
         G_OBJECT_CLASS (hzl_application_parent_class)->dispose (object);
 }
 
@@ -162,6 +171,7 @@ hzl_application_startup (GApplication *application)
                                          app_entries, G_N_ELEMENTS (app_entries),
                                          application);
 
+        /* TODO: Move the resource to "gtk/app-menu.ui" giving a try to an automatic app menu load */
         builder = gtk_builder_new_from_resource ("/org/gnome/hazlo/app-menu.ui");
         gtk_application_set_app_menu (GTK_APPLICATION (application), G_MENU_MODEL (gtk_builder_get_object (builder, "app-menu")));
         g_object_unref (builder);
@@ -190,14 +200,59 @@ hzl_application_adapter_async_open_cb (__attribute__ ((unused)) GObject *source_
                                        GAsyncResult *async_result,
                                        gpointer user_data)
 {
-        gboolean finish_result;
         HzlApplication *self = HZL_APPLICATION (user_data);
         GError *error = NULL;
+        GList *object_types = NULL;
+        GomFilter *filter;
+        GValue value = { 0, };
+        gchar *inbox_name;
 
-        finish_result = gom_adapter_open_finish (self->priv->adapter, async_result, &error);
-        if (finish_result == FALSE) {
+        gom_adapter_open_finish (self->priv->adapter, async_result, &error);
+        if (error != NULL) {
                 g_error ("Error opening connection with database: %s\n", error->message);
         }
+
+        /* 1. Ensure tables */
+        self->priv->repository = gom_repository_new (self->priv->adapter);
+
+        object_types = g_list_append (object_types, GINT_TO_POINTER (HZL_TYPE_TASKS_LIST));
+        object_types = g_list_append (object_types, GINT_TO_POINTER (HZL_TYPE_TASK));
+        gom_repository_automatic_migrate_sync (self->priv->repository, 1, object_types, &error);
+        if (error != NULL) {
+                g_error ("Error populating DB resources: %s\n", error->message);
+        }
+
+        /* 2. Getting the "Inbox" list */
+        g_value_init (&value, G_TYPE_STRING);
+        /* Translators: this is the default tasks list name. This list is created by default and it can not be removed. */
+        inbox_name = g_strdup (_("Inbox"));
+        g_value_set_string (&value, inbox_name);
+        filter = gom_filter_new_eq (HZL_TYPE_TASKS_LIST, "name", &value);
+        g_value_unset (&value);
+        self->priv->inbox_list = HZL_TASKS_LIST (gom_repository_find_one_sync (self->priv->repository,
+                                                                   HZL_TYPE_TASKS_LIST,
+                                                                   filter,
+                                                                   &error));
+        /* At this moment (3 Jan 2015, GOM version 0.2.1) the "not found error" is the number 3 */
+        if (error != NULL) {
+                if (error->code != 3)
+                        g_error ("Error finding 'Inbox' tasks list: (%d) %s\n", error->code, error->message);
+
+                /* Create the Inbox list */
+                g_clear_error (&error);
+                self->priv->inbox_list = g_object_new (HZL_TYPE_TASKS_LIST,
+                                           "repository", self->priv->repository,
+                                           "name", inbox_name,
+                                           NULL);
+                gom_resource_save_sync (GOM_RESOURCE (self->priv->inbox_list), &error);
+                if (error != NULL)
+                        g_error ("Error creating default 'Inbox' tasks list: %s\n", error->message);
+        }
+
+        /* TODO: 3. populate "main" list content */
+
+        g_clear_pointer (&inbox_name, g_free);
+        g_object_unref (filter);
 }
 
 static void
@@ -206,11 +261,10 @@ hzl_application_adapter_async_close_cb (__attribute__ ((unused)) GObject *source
                                         gpointer user_data)
 {
         HzlApplication *self = HZL_APPLICATION (user_data);
-        gboolean finish_result;
         GError *error = NULL;
 
-        finish_result = gom_adapter_close_finish (self->priv->adapter, async_result, &error);
-        if (finish_result == FALSE) {
+        gom_adapter_close_finish (self->priv->adapter, async_result, &error);
+        if (error != NULL) {
                 g_warning ("Error closing database: %s\n", error->message);
         }
 
