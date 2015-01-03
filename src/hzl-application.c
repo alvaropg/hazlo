@@ -85,6 +85,8 @@ static void
 hzl_application_constructed (GObject *object)
 {
         g_application_set_application_id (G_APPLICATION (object), "org.gnome." PACKAGE_NAME);
+        g_set_prgname ("Hazlo");
+        g_set_application_name ("Hazlo");
 
         G_OBJECT_CLASS (hzl_application_parent_class)->constructed (object);
 }
