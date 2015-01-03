@@ -127,10 +127,7 @@ hzl_application_finalize (GObject *object)
 {
         HzlApplication *self = HZL_APPLICATION (object);
 
-        if (self->priv->db_uri) {
-                g_free (self->priv->db_uri);
-                self->priv->db_uri = NULL;
-        }
+        g_clear_pointer (&self->priv->db_uri, g_free);
 
         G_OBJECT_CLASS (hzl_application_parent_class)->finalize (object);
 }
