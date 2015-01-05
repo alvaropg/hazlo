@@ -235,6 +235,8 @@ hzl_application_adapter_async_open_cb (__attribute__ ((unused)) GObject *source_
                                                                    &error));
         /* At this moment (3 Jan 2015, GOM version 0.2.1) the "not found error" is the number 3 */
         if (error != NULL) {
+                HzlTask *start_task;
+
                 if (error->code != 3)
                         g_error ("Error finding 'Inbox' tasks list: (%d) %s\n", error->code, error->message);
 
@@ -247,9 +249,20 @@ hzl_application_adapter_async_open_cb (__attribute__ ((unused)) GObject *source_
                 gom_resource_save_sync (GOM_RESOURCE (self->priv->inbox_list), &error);
                 if (error != NULL)
                         g_error ("Error creating default 'Inbox' tasks list: %s\n", error->message);
+
+                start_task = g_object_new (HZL_TYPE_TASK,
+                                           "repository", self->priv->repository,
+                                           "text", _("This is your first task!"),
+                                           "list_uuid", hzl_tasks_list_get_uuid (self->priv->inbox_list),
+                                           NULL);
+                gom_resource_save_sync (GOM_RESOURCE (start_task), &error);
+                if (error != NULL)
+                        g_warning ("Error creating default task: %s\n", error->message);
+                g_clear_error (&error);
         }
 
-        /* TODO: 3. populate "main" list content */
+        /* 3. populate "main" list content */
+        hzl_application_window_show_tasks_list (HZL_APPLICATION_WINDOW (self->priv->window), self->priv->inbox_list);
 
         g_clear_pointer (&inbox_name, g_free);
         g_object_unref (filter);
