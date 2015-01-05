@@ -29,7 +29,12 @@
 static void hzl_application_window_class_init (HzlApplicationWindowClass *klass);
 static void hzl_application_window_init       (HzlApplicationWindow *self);
 
-static void hzl_application_window_show_tasks_list_cb (GObject *source_object, GAsyncResult *async_result, gpointer user_data);
+static void hzl_application_window_show_tasks_list_cb (GObject               *source_object,
+                                                       GAsyncResult          *async_result,
+                                                       gpointer               user_data);
+static void hzl_application_window_task_done_cb       (GtkCellRendererToggle *cell_renderer,
+                                                       gchar                 *path_string,
+                                                       gpointer               user_data);
 
 struct _HzlApplicationWindowPrivate {
         GtkWidget *header_bar;
@@ -43,6 +48,7 @@ enum
 {
         DONE_COLUMN,
         TEXT_COLUMN,
+        OBJECT_COLUMN,
         N_COLUMNS
 };
 
@@ -85,7 +91,8 @@ hzl_application_window_init (HzlApplicationWindow *self)
 
         self->priv->tasks_store = gtk_list_store_new (N_COLUMNS,
                                                       G_TYPE_BOOLEAN,
-                                                      G_TYPE_STRING);
+                                                      G_TYPE_STRING,
+                                                      G_TYPE_OBJECT);
         widget = gtk_tree_view_new_with_model (GTK_TREE_MODEL (self->priv->tasks_store));
 
         /* Done column */
@@ -95,6 +102,7 @@ hzl_application_window_init (HzlApplicationWindow *self)
                                                            "active", DONE_COLUMN,
                                                            NULL);
         gtk_tree_view_append_column (GTK_TREE_VIEW (widget), column);
+        g_signal_connect (G_OBJECT (renderer), "toggled", G_CALLBACK (hzl_application_window_task_done_cb), self);
 
         /* Text column */
         renderer = gtk_cell_renderer_text_new ();
@@ -139,13 +147,45 @@ hzl_application_window_show_tasks_list_cb (GObject *source_object, GAsyncResult 
                 if (HZL_IS_TASK (task)) {
                         gtk_list_store_append (self->priv->tasks_store, &iter);
                         gtk_list_store_set (self->priv->tasks_store, &iter,
-                                            DONE_COLUMN, FALSE,
+                                            DONE_COLUMN, hzl_task_is_completed (task),
                                             TEXT_COLUMN, hzl_task_get_text (task),
+                                            OBJECT_COLUMN, task,
                                             -1);
                 }
         }
 
         g_object_unref (resource_group);
+}
+
+static void
+hzl_application_window_task_done_cb (GtkCellRendererToggle *cell_renderer,
+                                     gchar                 *path_string,
+                                     gpointer               user_data)
+{
+        GtkTreeIter iter;
+        HzlApplicationWindow *self = HZL_APPLICATION_WINDOW (user_data);
+        GValue object_value = { 0, };
+        HzlTask *task;
+        GError *error = NULL;
+
+        gtk_tree_model_get_iter_from_string (GTK_TREE_MODEL (self->priv->tasks_store), &iter, path_string);
+        gtk_tree_model_get_value (GTK_TREE_MODEL (self->priv->tasks_store), &iter, OBJECT_COLUMN, &object_value);
+        task = HZL_TASK (g_value_get_object (&object_value));
+        if (hzl_task_is_completed (task))
+                hzl_task_unmark_completed (task);
+        else
+                hzl_task_mark_completed_now (task);
+        gom_resource_save_sync (GOM_RESOURCE (task), &error);
+        if (error == NULL)
+                gtk_list_store_set (self->priv->tasks_store, &iter,
+                                    DONE_COLUMN, hzl_task_is_completed (task),
+                                    -1);
+        else
+                g_warning ("Error chaning task %s completiong status: %s\n",
+                           hzl_task_get_uuid (task),
+                           error->message);
+
+        g_value_unset (&object_value);
 }
 
 GtkWidget*
