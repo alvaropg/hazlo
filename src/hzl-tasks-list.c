@@ -189,3 +189,11 @@ hzl_tasks_list_get_name (HzlTasksList *self)
 
         return self->priv->name;
 }
+
+const gchar*
+hzl_tasks_list_get_uuid (HzlTasksList *self)
+{
+        g_return_val_if_fail (HZL_IS_TASKS_LIST (self), NULL);
+
+        return self->priv->uuid;
+}

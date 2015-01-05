@@ -50,6 +50,7 @@ GType hzl_tasks_list_get_type (void) G_GNUC_CONST;
 HzlTasksList* hzl_tasks_list_new (const gchar *name);
 void          hzl_tasks_list_set_name (HzlTasksList *self, const gchar *name);
 const gchar*  hzl_tasks_list_get_name (HzlTasksList *self);
+const gchar*  hzl_tasks_list_get_uuid (HzlTasksList *self);
 
 G_END_DECLS
 
