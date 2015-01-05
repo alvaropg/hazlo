@@ -69,7 +69,7 @@ hzl_task_class_init (HzlTaskClass *klass)
                                                                   "UUID",
                                                                   "Task Universal Unique Identifier",
                                                                   NULL,
-                                                                  G_PARAM_READABLE);
+                                                                  G_PARAM_READWRITE);
 
         obj_properties[HZL_TASK_PROP_LIST_UUID] = g_param_spec_string ("list_uuid",
                                                                        "List UUID",
