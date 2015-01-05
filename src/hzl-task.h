@@ -47,9 +47,13 @@ struct _HzlTaskClass {
 
 GType hzl_task_get_type (void) G_GNUC_CONST;
 
-HzlTask*     hzl_task_new (const gchar *text);
-void         hzl_task_set_text (HzlTask *self, const gchar *text);
-const gchar* hzl_task_get_text (HzlTask *self);
+HzlTask*     hzl_task_new                (const gchar *text);
+const gchar* hzl_task_get_uuid           (HzlTask *self);
+void         hzl_task_set_text           (HzlTask *self, const gchar *text);
+const gchar* hzl_task_get_text           (HzlTask *self);
+gboolean     hzl_task_is_completed       (HzlTask *self);
+void         hzl_task_mark_completed_now (HzlTask *self);
+void         hzl_task_unmark_completed   (HzlTask *self);
 
 G_END_DECLS
 

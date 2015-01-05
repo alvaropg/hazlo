@@ -23,6 +23,7 @@
 
 struct _HzlTaskPrivate {
         gchar *uuid;
+        gint64 completed;
         gchar *list_uuid;
         gchar *text;
 };
@@ -43,6 +44,7 @@ enum
         PROP_0,
 
         HZL_TASK_PROP_UUID,
+        HZL_TASK_PROP_COMPLETED,
         HZL_TASK_PROP_LIST_UUID,
         HZL_TASK_PROP_TEXT,
 
@@ -70,6 +72,12 @@ hzl_task_class_init (HzlTaskClass *klass)
                                                                   "Task Universal Unique Identifier",
                                                                   NULL,
                                                                   G_PARAM_READWRITE);
+
+        obj_properties[HZL_TASK_PROP_COMPLETED] = g_param_spec_int64 ("completed",
+                                                                      "Completed",
+                                                                      "Completion date of the task",
+                                                                      -1, G_MAXINT64, -1,
+                                                                      G_PARAM_READWRITE);
 
         obj_properties[HZL_TASK_PROP_LIST_UUID] = g_param_spec_string ("list_uuid",
                                                                        "List UUID",
@@ -102,6 +110,8 @@ hzl_task_init (HzlTask *self)
         uuid_generate (uuid);
         self->priv->uuid = g_new0(gchar, 36);
         uuid_unparse (uuid, self->priv->uuid);
+
+        self->priv->completed = -1;
 }
 
 static void
@@ -117,6 +127,9 @@ hzl_task_set_property (GObject      *gobject,
                 if (self->priv->uuid)
                         g_free (self->priv->uuid);
                 self->priv->uuid = g_value_dup_string (value);
+                break;
+        case HZL_TASK_PROP_COMPLETED:
+                self->priv->completed = g_value_get_int64 (value);
                 break;
         case HZL_TASK_PROP_LIST_UUID:
                 if (self->priv->list_uuid)
@@ -144,6 +157,9 @@ hzl_task_get_property (GObject    *gobject,
         switch (property_id) {
         case HZL_TASK_PROP_UUID:
                 g_value_set_string (value, self->priv->uuid);
+                break;
+        case HZL_TASK_PROP_COMPLETED:
+                g_value_set_int64 (value, self->priv->completed);
                 break;
         case HZL_TASK_PROP_LIST_UUID:
                 g_value_set_string (value, self->priv->list_uuid);
@@ -189,6 +205,14 @@ hzl_task_new (const gchar *text)
         return task;
 }
 
+const gchar*
+hzl_task_get_uuid (HzlTask *self)
+{
+        g_return_val_if_fail (HZL_IS_TASK (self), NULL);
+
+        return self->priv->uuid;
+}
+
 void
 hzl_task_set_text (HzlTask *self, const gchar *text)
 {
@@ -205,4 +229,35 @@ hzl_task_get_text (HzlTask *self)
         g_return_val_if_fail (HZL_IS_TASK (self), NULL);
 
         return self->priv->text;
+}
+
+gboolean
+hzl_task_is_completed (HzlTask *self)
+{
+        g_return_val_if_fail (HZL_IS_TASK (self), FALSE);
+
+        return self->priv->completed == -1 ? FALSE : TRUE;
+}
+
+void
+hzl_task_mark_completed_now (HzlTask *self)
+{
+        gint64 now;
+
+        g_return_if_fail (HZL_IS_TASK (self));
+
+        now = time(NULL);
+        g_object_set (HZL_TASK (self),
+                      "completed", now,
+                      NULL);
+}
+
+void
+hzl_task_unmark_completed (HzlTask *self)
+{
+        g_return_if_fail (HZL_IS_TASK (self));
+
+        g_object_set (HZL_TASK (self),
+                      "completed", (gint64) -1,
+                      NULL);
 }
