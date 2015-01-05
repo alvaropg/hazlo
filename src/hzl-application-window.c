@@ -60,7 +60,8 @@ hzl_application_window_class_init (__attribute__ ((unused)) HzlApplicationWindow
 static void
 hzl_application_window_init (HzlApplicationWindow *self)
 {
-        GtkWidget *widget;
+        GtkWidget *scrolled_window;
+        GtkWidget *tree_view;
         GtkCellRenderer *renderer;
         GtkTreeViewColumn *column;
         GdkGeometry geometry = {
@@ -93,15 +94,15 @@ hzl_application_window_init (HzlApplicationWindow *self)
                                                       G_TYPE_BOOLEAN,
                                                       G_TYPE_STRING,
                                                       G_TYPE_OBJECT);
-        widget = gtk_tree_view_new_with_model (GTK_TREE_MODEL (self->priv->tasks_store));
-
+        tree_view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (self->priv->tasks_store));
+        gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (tree_view), FALSE);
         /* Done column */
         renderer = gtk_cell_renderer_toggle_new ();
         column = gtk_tree_view_column_new_with_attributes ("Done",
                                                            renderer,
                                                            "active", DONE_COLUMN,
                                                            NULL);
-        gtk_tree_view_append_column (GTK_TREE_VIEW (widget), column);
+        gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view), column);
         g_signal_connect (G_OBJECT (renderer), "toggled", G_CALLBACK (hzl_application_window_task_done_cb), self);
 
         /* Text column */
@@ -110,10 +111,13 @@ hzl_application_window_init (HzlApplicationWindow *self)
                                                            renderer,
                                                            "text", TEXT_COLUMN,
                                                            NULL);
-        gtk_tree_view_append_column (GTK_TREE_VIEW (widget), column);
+        gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view), column);
 
-        gtk_container_add (GTK_CONTAINER (self->priv->stack), widget);
-        gtk_widget_show (widget);
+        scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+        gtk_container_add (GTK_CONTAINER (scrolled_window), tree_view);
+        gtk_widget_show (scrolled_window);
+        gtk_container_add (GTK_CONTAINER (self->priv->stack), scrolled_window);
+        gtk_widget_show (tree_view);
 }
 
 static void
