@@ -29,12 +29,22 @@
 static void hzl_application_window_class_init (HzlApplicationWindowClass *klass);
 static void hzl_application_window_init       (HzlApplicationWindow *self);
 
+static void hzl_application_window_show_tasks_list_cb (GObject *source_object, GAsyncResult *async_result, gpointer user_data);
+
 struct _HzlApplicationWindowPrivate {
         GtkWidget *header_bar;
         GtkWidget *stack;
+        GtkListStore *tasks_store;
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE (HzlApplicationWindow, hzl_application_window, GTK_TYPE_APPLICATION_WINDOW);
+
+enum
+{
+        DONE_COLUMN,
+        TEXT_COLUMN,
+        N_COLUMNS
+};
 
 static void
 hzl_application_window_class_init (__attribute__ ((unused)) HzlApplicationWindowClass *klass)
@@ -44,6 +54,9 @@ hzl_application_window_class_init (__attribute__ ((unused)) HzlApplicationWindow
 static void
 hzl_application_window_init (HzlApplicationWindow *self)
 {
+        GtkWidget *widget;
+        GtkCellRenderer *renderer;
+        GtkTreeViewColumn *column;
         GdkGeometry geometry = {
                 320,
                 400,
@@ -69,6 +82,70 @@ hzl_application_window_init (HzlApplicationWindow *self)
         self->priv->stack = gtk_stack_new ();
         gtk_container_add (GTK_CONTAINER (self), self->priv->stack);
         gtk_widget_show (self->priv->stack);
+
+        self->priv->tasks_store = gtk_list_store_new (N_COLUMNS,
+                                                      G_TYPE_BOOLEAN,
+                                                      G_TYPE_STRING);
+        widget = gtk_tree_view_new_with_model (GTK_TREE_MODEL (self->priv->tasks_store));
+
+        /* Done column */
+        renderer = gtk_cell_renderer_toggle_new ();
+        column = gtk_tree_view_column_new_with_attributes ("Done",
+                                                           renderer,
+                                                           "active", DONE_COLUMN,
+                                                           NULL);
+        gtk_tree_view_append_column (GTK_TREE_VIEW (widget), column);
+
+        /* Text column */
+        renderer = gtk_cell_renderer_text_new ();
+        column = gtk_tree_view_column_new_with_attributes ("Text",
+                                                           renderer,
+                                                           "text", TEXT_COLUMN,
+                                                           NULL);
+        gtk_tree_view_append_column (GTK_TREE_VIEW (widget), column);
+
+        gtk_container_add (GTK_CONTAINER (self->priv->stack), widget);
+        gtk_widget_show (widget);
+}
+
+static void
+hzl_application_window_show_tasks_list_cb (GObject *source_object, GAsyncResult *async_result, gpointer user_data)
+{
+        GError *error = NULL;
+        GomResourceGroup *resource_group;
+        HzlApplicationWindow *self;
+        guint tasks_count;
+        guint i;
+
+        self = HZL_APPLICATION_WINDOW (user_data);
+        resource_group = gom_repository_find_finish (GOM_REPOSITORY (source_object), async_result, &error);
+        if (error != NULL) {
+                g_warning ("Error getting the tasks: (%d) %s\n", error->code, error->message);
+                return;
+        }
+
+        tasks_count = gom_resource_group_get_count (resource_group);
+        gom_resource_group_fetch_sync (resource_group, 0, tasks_count, &error);
+        if (error != NULL) {
+                g_object_unref (resource_group);
+                g_warning ("Error fetching all tasks in list: %s\n", error->message);
+                return;
+        }
+        for (i = 0; i < tasks_count; i++) {
+                GtkTreeIter iter;
+                HzlTask *task;
+
+                task = HZL_TASK (gom_resource_group_get_index (resource_group, i));
+                if (HZL_IS_TASK (task)) {
+                        gtk_list_store_append (self->priv->tasks_store, &iter);
+                        gtk_list_store_set (self->priv->tasks_store, &iter,
+                                            DONE_COLUMN, FALSE,
+                                            TEXT_COLUMN, hzl_task_get_text (task),
+                                            -1);
+                }
+        }
+
+        g_object_unref (resource_group);
 }
 
 GtkWidget*
@@ -76,7 +153,31 @@ hzl_application_window_new (GtkApplication *application)
 {
         return GTK_WIDGET (g_object_new (HZL_TYPE_APPLICATION_WINDOW,
                                          "application", application,
-                                         "title", _(PACKAGE_NAME),
+                                         "title", _("Hazlo"),
                                          "window-position", GTK_WIN_POS_CENTER,
                                          NULL));
+}
+
+void
+hzl_application_window_show_tasks_list (HzlApplicationWindow *self, HzlTasksList *list)
+{
+        GomFilter *filter;
+        GValue value = { 0, };
+        GomRepository *repository;
+
+        g_return_if_fail (HZL_IS_APPLICATION_WINDOW (self));
+        g_return_if_fail (HZL_IS_TASKS_LIST (list));
+
+        g_object_get (G_OBJECT (list), "repository", &repository, NULL);
+        g_return_if_fail (GOM_IS_REPOSITORY (repository));
+
+        gtk_list_store_clear (self->priv->tasks_store);
+
+        g_value_init (&value, G_TYPE_STRING);
+        g_value_set_string (&value, hzl_tasks_list_get_uuid (list));
+        filter = gom_filter_new_eq (HZL_TYPE_TASK, "list_uuid", &value);
+        g_value_unset (&value);
+
+        gom_repository_find_async (repository, HZL_TYPE_TASK, filter, hzl_application_window_show_tasks_list_cb, self);
+        g_object_unref (filter);        
 }

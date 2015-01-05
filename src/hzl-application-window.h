@@ -24,6 +24,8 @@
 
 #include <gtk/gtk.h>
 
+#include "hzl-tasks-list.h"
+
 G_BEGIN_DECLS
 
 #define HZL_TYPE_APPLICATION_WINDOW             (hzl_application_window_get_type())
@@ -49,6 +51,8 @@ struct _HzlApplicationWindowClass {
 GType        hzl_application_window_get_type  (void) G_GNUC_CONST;
 
 GtkWidget*   hzl_application_window_new       (GtkApplication *application);
+
+void         hzl_application_window_show_tasks_list (HzlApplicationWindow *self, HzlTasksList *list);
 
 G_END_DECLS
 
