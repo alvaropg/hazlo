@@ -68,7 +68,7 @@ G_DEFINE_TYPE_WITH_CODE (HzlApplication, hzl_application, GTK_TYPE_APPLICATION, 
 
 static GActionEntry app_entries[] =
 {
-  { "quit", hzl_application_quit_activated, NULL, NULL, NULL }
+        { "quit", hzl_application_quit_activated, NULL, NULL, NULL }
 };
 
 static void
