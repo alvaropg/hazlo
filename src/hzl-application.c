@@ -225,9 +225,9 @@ hzl_application_adapter_async_open_cb (__attribute__ ((unused)) GObject *source_
         /* 2. Getting the "Inbox" list */
         g_value_init (&value, G_TYPE_STRING);
         /* Translators: this is the default tasks list name. This list is created by default and it can not be removed. */
-        inbox_name = g_strdup (_("Inbox"));
+        inbox_name = g_strdup ("hazlo-inbox");
         g_value_set_string (&value, inbox_name);
-        filter = gom_filter_new_eq (HZL_TYPE_TASKS_LIST, "name", &value);
+        filter = gom_filter_new_eq (HZL_TYPE_TASKS_LIST, "uuid", &value);
         g_value_unset (&value);
         self->priv->inbox_list = HZL_TASKS_LIST (gom_repository_find_one_sync (self->priv->repository,
                                                                    HZL_TYPE_TASKS_LIST,
@@ -243,9 +243,10 @@ hzl_application_adapter_async_open_cb (__attribute__ ((unused)) GObject *source_
                 /* Create the Inbox list */
                 g_clear_error (&error);
                 self->priv->inbox_list = g_object_new (HZL_TYPE_TASKS_LIST,
-                                           "repository", self->priv->repository,
-                                           "name", inbox_name,
-                                           NULL);
+                                                       "repository", self->priv->repository,
+                                                       "uuid", "hazlo-inbox",
+                                                       "name", inbox_name,
+                                                       NULL);
                 gom_resource_save_sync (GOM_RESOURCE (self->priv->inbox_list), &error);
                 if (error != NULL)
                         g_error ("Error creating default 'Inbox' tasks list: %s\n", error->message);
