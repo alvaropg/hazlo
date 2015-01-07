@@ -63,6 +63,8 @@ enum
         N_COLUMNS
 };
 
+GdkRGBA task_entry_color = { 0.5, 0.5, 0.5, 1 };
+
 static void
 hzl_application_window_class_init (__attribute__ ((unused)) HzlApplicationWindowClass *klass)
 {
@@ -106,6 +108,8 @@ hzl_application_window_init (HzlApplicationWindow *self)
         gtk_widget_show (self->priv->stack);
 
         task_entry = gtk_entry_new ();
+        gtk_widget_override_color (task_entry, GTK_STATE_FLAG_NORMAL, &task_entry_color);
+        gtk_entry_set_text (GTK_ENTRY (task_entry), _("Write here your task"));
         gtk_header_bar_pack_start (GTK_HEADER_BAR (self->priv->header_bar), task_entry);
         g_signal_connect (G_OBJECT (task_entry), "focus-in-event", G_CALLBACK (hzl_application_window_task_entry_focus_in_cb), self);
         g_signal_connect (G_OBJECT (task_entry), "focus-out-event", G_CALLBACK (hzl_application_window_task_entry_focus_out_cb), self);
@@ -155,12 +159,14 @@ hzl_application_window_dispose (GObject *gobject)
 static void
 hzl_application_window_task_entry_focus_in_cb (GtkWidget *widget, GdkEvent *event, gpointer user_data)
 {
+        gtk_widget_override_color (widget, GTK_STATE_FLAG_NORMAL, NULL);
         gtk_entry_set_text (GTK_ENTRY (widget), "");
 }
 
 static void
 hzl_application_window_task_entry_focus_out_cb (GtkWidget *widget, GdkEvent *event, gpointer user_data)
 {
+        gtk_widget_override_color (widget, GTK_STATE_FLAG_NORMAL, &task_entry_color);
         gtk_entry_set_text (GTK_ENTRY (widget), _("Write here your task"));
 }
 
