@@ -8,6 +8,8 @@ hazlo_SOURCES = \
 	hzl-main.c \
 	hzl-task.c \
 	hzl-task.h \
+	hzl-task-list-row.c \
+	hzl-task-list-row.h \
 	hzl-tasks-list.c \
 	hzl-tasks-list.h \
 	hzl-utils.c \

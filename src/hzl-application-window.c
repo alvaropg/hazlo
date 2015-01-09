@@ -25,6 +25,7 @@
 
 #include "hzl-application-window.h"
 #include "hzl-task.h"
+#include "hzl-task-list-row.h"
 #include "hzl-tasks-list.h"
 
 static void hzl_application_window_class_init (HzlApplicationWindowClass *klass);
@@ -42,26 +43,15 @@ static void hzl_application_window_task_entry_focus_out_cb (GtkWidget           
 static void hzl_application_window_show_tasks_list_cb      (GObject               *source_object,
                                                             GAsyncResult          *async_result,
                                                             gpointer               user_data);
-static void hzl_application_window_task_done_cb            (GtkCellRendererToggle *cell_renderer,
-                                                            gchar                 *path_string,
-                                                            gpointer               user_data);
 
 struct _HzlApplicationWindowPrivate {
         GtkWidget *header_bar;
         GtkWidget *stack;
-        GtkListStore *tasks_store;
+        GtkWidget *tasks_list_box;
         HzlTasksList *current_list;
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE (HzlApplicationWindow, hzl_application_window, GTK_TYPE_APPLICATION_WINDOW);
-
-enum
-{
-        DONE_COLUMN,
-        TEXT_COLUMN,
-        OBJECT_COLUMN,
-        N_COLUMNS
-};
 
 GdkRGBA task_entry_color = { 0.5, 0.5, 0.5, 1 };
 
@@ -76,11 +66,7 @@ hzl_application_window_class_init (__attribute__ ((unused)) HzlApplicationWindow
 static void
 hzl_application_window_init (HzlApplicationWindow *self)
 {
-        GtkWidget *scrolled_window;
-        GtkWidget *tree_view;
         GtkWidget *task_entry;
-        GtkCellRenderer *renderer;
-        GtkTreeViewColumn *column;
         GdkGeometry geometry = {
                 320,
                 400,
@@ -116,34 +102,9 @@ hzl_application_window_init (HzlApplicationWindow *self)
         g_signal_connect (G_OBJECT (task_entry), "activate", G_CALLBACK (hzl_application_window_task_entry_activate_cb), self);
         gtk_widget_show (task_entry);
 
-        self->priv->tasks_store = gtk_list_store_new (N_COLUMNS,
-                                                      G_TYPE_BOOLEAN,
-                                                      G_TYPE_STRING,
-                                                      G_TYPE_OBJECT);
-        tree_view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (self->priv->tasks_store));
-        gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (tree_view), FALSE);
-        /* Done column */
-        renderer = gtk_cell_renderer_toggle_new ();
-        column = gtk_tree_view_column_new_with_attributes ("Done",
-                                                           renderer,
-                                                           "active", DONE_COLUMN,
-                                                           NULL);
-        gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view), column);
-        g_signal_connect (G_OBJECT (renderer), "toggled", G_CALLBACK (hzl_application_window_task_done_cb), self);
-
-        /* Text column */
-        renderer = gtk_cell_renderer_text_new ();
-        column = gtk_tree_view_column_new_with_attributes ("Text",
-                                                           renderer,
-                                                           "text", TEXT_COLUMN,
-                                                           NULL);
-        gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view), column);
-
-        scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-        gtk_container_add (GTK_CONTAINER (scrolled_window), tree_view);
-        gtk_widget_show (scrolled_window);
-        gtk_container_add (GTK_CONTAINER (self->priv->stack), scrolled_window);
-        gtk_widget_show (tree_view);
+        self->priv->tasks_list_box = gtk_list_box_new ();
+        gtk_stack_add_named (GTK_STACK (self->priv->stack), self->priv->tasks_list_box, "tasks-list");
+        gtk_widget_show (self->priv->tasks_list_box);
 }
 
 static void
@@ -195,15 +156,11 @@ hzl_application_window_task_entry_activate_cb (GtkEntry *entry, gpointer user_da
         if (error != NULL)
                 g_warning ("Error saving task: %s\n", error->message);
         else {
-                GtkTreeIter iter;
+                HzlTaskListRow *row;
 
-                gtk_list_store_append (self->priv->tasks_store, &iter);
-                gtk_list_store_set (self->priv->tasks_store, &iter,
-                                    DONE_COLUMN, FALSE,
-                                    TEXT_COLUMN, text_entry,
-                                    OBJECT_COLUMN, new_task,
-                                    -1);
-                gtk_entry_set_text (entry, "");
+                row = hzl_task_list_row_new (new_task);
+                gtk_container_add (GTK_CONTAINER (self->priv->tasks_list_box), GTK_WIDGET (row));
+                gtk_widget_show (GTK_WIDGET (row));
         }
 }
 
@@ -231,17 +188,17 @@ hzl_application_window_show_tasks_list_cb (GObject *source_object, GAsyncResult 
                 return;
         }
         for (i = 0; i < tasks_count; i++) {
-                GtkTreeIter iter;
                 HzlTask *task;
 
                 task = HZL_TASK (gom_resource_group_get_index (resource_group, i));
                 if (HZL_IS_TASK (task)) {
-                        gtk_list_store_append (self->priv->tasks_store, &iter);
-                        gtk_list_store_set (self->priv->tasks_store, &iter,
-                                            DONE_COLUMN, hzl_task_is_completed (task),
-                                            TEXT_COLUMN, hzl_task_get_text (task),
-                                            OBJECT_COLUMN, task,
-                                            -1);
+                        HzlTaskListRow *row;
+
+                        row = hzl_task_list_row_new (task);
+                        gtk_list_box_insert (GTK_LIST_BOX (self->priv->tasks_list_box),
+                                             GTK_WIDGET (row),
+                                             -1);
+                        gtk_widget_show (GTK_WIDGET (row));
                 }
         }
 
@@ -249,34 +206,9 @@ hzl_application_window_show_tasks_list_cb (GObject *source_object, GAsyncResult 
 }
 
 static void
-hzl_application_window_task_done_cb (GtkCellRendererToggle *cell_renderer,
-                                     gchar                 *path_string,
-                                     gpointer               user_data)
+hzl_application_window_clear_list_box_cb (GtkWidget *row, __attribute__ ((unused)) gpointer data)
 {
-        GtkTreeIter iter;
-        HzlApplicationWindow *self = HZL_APPLICATION_WINDOW (user_data);
-        GValue object_value = { 0, };
-        HzlTask *task;
-        GError *error = NULL;
-
-        gtk_tree_model_get_iter_from_string (GTK_TREE_MODEL (self->priv->tasks_store), &iter, path_string);
-        gtk_tree_model_get_value (GTK_TREE_MODEL (self->priv->tasks_store), &iter, OBJECT_COLUMN, &object_value);
-        task = HZL_TASK (g_value_get_object (&object_value));
-        if (hzl_task_is_completed (task))
-                hzl_task_unmark_completed (task);
-        else
-                hzl_task_mark_completed_now (task);
-        gom_resource_save_sync (GOM_RESOURCE (task), &error);
-        if (error == NULL)
-                gtk_list_store_set (self->priv->tasks_store, &iter,
-                                    DONE_COLUMN, hzl_task_is_completed (task),
-                                    -1);
-        else
-                g_warning ("Error chaning task %s completiong status: %s\n",
-                           hzl_task_get_uuid (task),
-                           error->message);
-
-        g_value_unset (&object_value);
+        gtk_widget_destroy (row);
 }
 
 GtkWidget*
@@ -302,7 +234,9 @@ hzl_application_window_show_tasks_list (HzlApplicationWindow *self, HzlTasksList
         g_object_get (G_OBJECT (list), "repository", &repository, NULL);
         g_return_if_fail (GOM_IS_REPOSITORY (repository));
 
-        gtk_list_store_clear (self->priv->tasks_store);
+        gtk_container_foreach (GTK_CONTAINER (self->priv->tasks_list_box),
+                               hzl_application_window_clear_list_box_cb,
+                               NULL);
 
         g_value_init (&value, G_TYPE_STRING);
         g_value_set_string (&value, hzl_tasks_list_get_uuid (list));
