@@ -1,6 +1,6 @@
 /* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 8; tab-width: 8 -*- */
 /*
- * Hzl - Photos selection application for GNOME
+ * Hazlo
  * Copyright © 2014 Álvaro Peña <alvaropg@gmail.com>
  *
  * APP is free software: you can redistribute it and/or modify
