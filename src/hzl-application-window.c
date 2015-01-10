@@ -149,6 +149,8 @@ hzl_application_window_task_entry_activate_cb (GtkEntry *entry, gpointer user_da
                 gtk_container_add (GTK_CONTAINER (self->priv->tasks_list_box), GTK_WIDGET (row));
                 gtk_widget_show (GTK_WIDGET (row));
         }
+
+        gtk_entry_set_text (entry, "");
 }
 
 static void
