@@ -25,7 +25,6 @@ struct _HzlTaskListRowPrivate {
         GtkWidget *done_check;
         GtkWidget *text_label;
         GtkWidget *due_label;
-        GtkWidget *note_image;
 };
 
 static void hzl_task_list_row_set_property (GObject      *object,
@@ -39,7 +38,8 @@ static void hzl_task_list_row_get_property (GObject      *object,
 static void hzl_task_list_row_dispose      (GObject *gobject);
 static void hzl_task_list_row_finalize     (GObject *gobject);
 
-static void hzl_task_list_row_bind_task    (HzlTaskListRow *self);
+static void hzl_task_list_row_bind_task       (HzlTaskListRow *self);
+static void hzl_task_list_row_done_toggled_cb (GtkToggleButton *toggle, gpointer user_data);
 
 enum
 {
@@ -79,7 +79,7 @@ hzl_task_list_row_class_init (HzlTaskListRowClass *klass)
         gtk_widget_class_bind_template_child_private (GTK_WIDGET_CLASS (klass), HzlTaskListRow, done_check);
         gtk_widget_class_bind_template_child_private (GTK_WIDGET_CLASS (klass), HzlTaskListRow, text_label);
         gtk_widget_class_bind_template_child_private (GTK_WIDGET_CLASS (klass), HzlTaskListRow, due_label);
-        gtk_widget_class_bind_template_child_private (GTK_WIDGET_CLASS (klass), HzlTaskListRow, note_image);
+        gtk_widget_class_bind_template_callback (GTK_WIDGET_CLASS (klass), hzl_task_list_row_done_toggled_cb);
 }
 
 static void
@@ -149,10 +149,26 @@ hzl_task_list_row_finalize (GObject *gobject)
 static void
 hzl_task_list_row_bind_task (HzlTaskListRow *self)
 {
+        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->priv->done_check), hzl_task_is_completed (self->priv->task));
         gtk_label_set_text (GTK_LABEL (self->priv->text_label), hzl_task_get_text (self->priv->task));
         g_object_bind_property (self->priv->task, "text",
                                 self->priv->text_label, "label",
                                 G_BINDING_BIDIRECTIONAL);
+}
+
+static void
+hzl_task_list_row_done_toggled_cb (GtkToggleButton *toggle, __attribute__ ((unused)) gpointer user_data)
+{
+        HzlTaskListRow *self = HZL_TASK_LIST_ROW (gtk_widget_get_parent (gtk_widget_get_parent (GTK_WIDGET (toggle))));
+        GError *error = NULL;
+
+        if (gtk_toggle_button_get_active (toggle))
+                hzl_task_mark_completed_now (self->priv->task);
+        else
+                hzl_task_unmark_completed (self->priv->task);
+        gom_resource_save_sync (GOM_RESOURCE (self->priv->task), &error);
+        if (error != NULL)
+                g_warning ("Error saving task: %s\n", error->message);
 }
 
 HzlTaskListRow*
