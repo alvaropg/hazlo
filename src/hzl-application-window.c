@@ -170,24 +170,26 @@ hzl_application_window_show_tasks_list_cb (GObject *source_object, GAsyncResult 
         }
 
         tasks_count = gom_resource_group_get_count (resource_group);
-        gom_resource_group_fetch_sync (resource_group, 0, tasks_count, &error);
-        if (error != NULL) {
-                g_object_unref (resource_group);
-                g_warning ("Error fetching all tasks in list: %s\n", error->message);
-                return;
-        }
-        for (i = 0; i < tasks_count; i++) {
-                HzlTask *task;
+        if (tasks_count > 0) {
+                gom_resource_group_fetch_sync (resource_group, 0, tasks_count, &error);
+                if (error != NULL) {
+                        g_object_unref (resource_group);
+                        g_warning ("Error fetching all tasks in list: %s\n", error->message);
+                        return;
+                }
+                for (i = 0; i < tasks_count; i++) {
+                        HzlTask *task;
 
-                task = HZL_TASK (gom_resource_group_get_index (resource_group, i));
-                if (HZL_IS_TASK (task)) {
-                        HzlTaskListRow *row;
+                        task = HZL_TASK (gom_resource_group_get_index (resource_group, i));
+                        if (HZL_IS_TASK (task)) {
+                                HzlTaskListRow *row;
 
-                        row = hzl_task_list_row_new (task);
-                        gtk_list_box_insert (GTK_LIST_BOX (self->priv->tasks_list_box),
-                                             GTK_WIDGET (row),
-                                             -1);
-                        gtk_widget_show (GTK_WIDGET (row));
+                                row = hzl_task_list_row_new (task);
+                                gtk_list_box_insert (GTK_LIST_BOX (self->priv->tasks_list_box),
+                                                     GTK_WIDGET (row),
+                                                     -1);
+                                gtk_widget_show (GTK_WIDGET (row));
+                        }
                 }
         }
 
