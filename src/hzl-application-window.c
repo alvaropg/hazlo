@@ -90,6 +90,7 @@ hzl_application_window_init (HzlApplicationWindow *self)
         gtk_widget_show (task_entry);
 
         self->priv->tasks_list_box = gtk_list_box_new ();
+        gtk_style_context_add_class (gtk_widget_get_style_context (self->priv->tasks_list_box), "tasks-list");
         gtk_stack_add_named (GTK_STACK (self->priv->stack), self->priv->tasks_list_box, "tasks-list");
         gtk_widget_show (self->priv->tasks_list_box);
 }

@@ -3,5 +3,6 @@
   <gresource prefix="/org/gnome/hazlo">
     <file preprocess="xml-stripblanks">app-menu.ui</file>
     <file preprocess="xml-stripblanks">task-list-row.ui</file>
+    <file>hazlo.css</file>
   </gresource>
 </gresources>

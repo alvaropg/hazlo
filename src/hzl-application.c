@@ -164,6 +164,7 @@ static void
 hzl_application_startup (GApplication *application)
 {
         GtkBuilder *builder;
+        GtkCssProvider *style_provider;
 
         G_APPLICATION_CLASS (hzl_application_parent_class)->startup (application);
 
@@ -175,6 +176,11 @@ hzl_application_startup (GApplication *application)
         builder = gtk_builder_new_from_resource ("/org/gnome/hazlo/app-menu.ui");
         gtk_application_set_app_menu (GTK_APPLICATION (application), G_MENU_MODEL (gtk_builder_get_object (builder, "app-menu")));
         g_object_unref (builder);
+
+        style_provider = gtk_css_provider_new ();
+        gtk_css_provider_load_from_resource (style_provider, "/org/gnome/hazlo/hazlo.css");
+        gtk_style_context_add_provider_for_screen (gdk_screen_get_default (), GTK_STYLE_PROVIDER (style_provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+        g_object_unref (style_provider);
 }
 
 static void

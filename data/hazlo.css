@@ -1,0 +1,7 @@
+HzlTaskListRow {
+    background-color: @theme_bg_color;
+}
+
+.tasks-list {
+    background-color: @theme_bg_color;
+}
