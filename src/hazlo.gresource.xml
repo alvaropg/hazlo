@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/org/gnome/hazlo">
+    <file preprocess="xml-stripblanks">gtk/menus.ui</file>
+    <file preprocess="xml-stripblanks">ui/task-list-row.ui</file>
+    <file>css/hazlo.css</file>
+  </gresource>
+</gresources>

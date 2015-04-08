@@ -54,7 +54,7 @@ AC_SUBST(GLIB_COMPILE_RESOURCES)
 AC_CONFIG_FILES([
 Makefile
 data/Makefile
-data/hazlo.desktop.in
+data/org.gnome.Hazlo.desktop.in
 src/Makefile
 po/Makefile.in
 ])

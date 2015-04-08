@@ -6,8 +6,8 @@ resourcedir = $(pkgdatadir)
 resource_DATA = hazlo.gresource
 
 desktopdir = $(datadir)/applications
-desktop_in_in_files = hazlo.desktop.in.in
-desktop_in_files = hazlo.desktop.in
+desktop_in_in_files = org.gnome.Hazlo.desktop.in.in
+desktop_in_files = org.gnome.Hazlo.desktop.in
 desktop_DATA = $(desktop_in_files:.desktop.in=.desktop)
 @INTLTOOL_DESKTOP_RULE@
 
