@@ -75,7 +75,7 @@ hzl_task_list_row_class_init (HzlTaskListRowClass *klass)
                                            N_PROPERTIES,
                                            obj_properties);
 
-        gtk_widget_class_set_template_from_resource (GTK_WIDGET_CLASS (klass), "/org/gnome/hazlo/task-list-row.ui");
+        gtk_widget_class_set_template_from_resource (GTK_WIDGET_CLASS (klass), "/org/gnome/hazlo/ui/task-list-row.ui");
         gtk_widget_class_bind_template_child_private (GTK_WIDGET_CLASS (klass), HzlTaskListRow, done_check);
         gtk_widget_class_bind_template_child_private (GTK_WIDGET_CLASS (klass), HzlTaskListRow, text_label);
         gtk_widget_class_bind_template_child_private (GTK_WIDGET_CLASS (klass), HzlTaskListRow, due_label);
