@@ -57,7 +57,6 @@ static void hzl_application_adapter_async_close_cb (GObject      *source_object,
 struct _HzlApplicationPrivate {
         GtkWidget *window;
         guint32 activation_timestamp;
-        GResource *resource;
         GomAdapter *adapter;
         gchar *db_uri;
         GomRepository *repository;
@@ -94,12 +93,6 @@ hzl_application_init (HzlApplication *self)
 
         self->priv->window = NULL;
         self->priv->activation_timestamp = GDK_CURRENT_TIME;
-        self->priv->resource = g_resource_load (hzl_utils_get_resource_filename (), &error);
-        if (error == NULL) {
-                g_resources_register (self->priv->resource);
-        } else {
-                g_error (_("Error loading resources file: %s"), error->message);
-        }
         self->priv->adapter = NULL;
         self->priv->db_uri = g_build_filename (g_get_user_data_dir (), "hazlo.db", NULL);;
 }
@@ -118,12 +111,6 @@ static void
 hzl_application_dispose (GObject *object)
 {
         HzlApplication *self = HZL_APPLICATION (object);
-
-        if (self->priv->resource) {
-                g_resources_unregister (self->priv->resource);
-                g_resource_unref (self->priv->resource);
-                self->priv->resource = NULL;
-        }
 
         g_clear_object (&self->priv->repository);
         g_clear_object (&self->priv->adapter);
@@ -163,7 +150,6 @@ hzl_application_activate (GApplication *application)
 static void
 hzl_application_startup (GApplication *application)
 {
-        GtkBuilder *builder;
         GtkCssProvider *style_provider;
 
         G_APPLICATION_CLASS (hzl_application_parent_class)->startup (application);
@@ -172,13 +158,8 @@ hzl_application_startup (GApplication *application)
                                          app_entries, G_N_ELEMENTS (app_entries),
                                          application);
 
-        /* TODO: Move the resource to "gtk/app-menu.ui" giving a try to an automatic app menu load */
-        builder = gtk_builder_new_from_resource ("/org/gnome/hazlo/app-menu.ui");
-        gtk_application_set_app_menu (GTK_APPLICATION (application), G_MENU_MODEL (gtk_builder_get_object (builder, "app-menu")));
-        g_object_unref (builder);
-
         style_provider = gtk_css_provider_new ();
-        gtk_css_provider_load_from_resource (style_provider, "/org/gnome/hazlo/hazlo.css");
+        gtk_css_provider_load_from_resource (style_provider, "/org/gnome/hazlo/css/hazlo.css");
         gtk_style_context_add_provider_for_screen (gdk_screen_get_default (), GTK_STYLE_PROVIDER (style_provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
         g_object_unref (style_provider);
 }

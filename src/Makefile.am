@@ -1,3 +1,6 @@
+EXTRA_DIST =
+CLEANFILES =
+
 bin_PROGRAMS = hazlo
 
 hazlo_SOURCES = \
@@ -33,5 +36,16 @@ hazlo_LDFLAGS =
 hazlo_LDADD = \
 	$(HZL_MODULES_LIBS) \
 	$(NULL)
+
+# GResource
+
+hazlo_SOURCES += resources.c
+
+resource_files = $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/hazlo.gresource.xml)
+resources.c: hazlo.gresource.xml $(resource_files)
+	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir) --generate-source --c-name hazlo $(srcdir)/hazlo.gresource.xml
+
+EXTRA_DIST += hazlo.gresource.xml
+CLEANFILES += resources.c
 
 -include $(top_srcdir)/git.mk
